@@ -44,25 +44,31 @@ y = y';
 % Normalizando os dados de X entre -1 e 1
 X_norm = normalize(X);
 
+% Definindo a quantidade de q e sigma
 q = 40;
 sigma = 35;
 
-% Seta 10 épocas
+% Escolhendo 10 épocas 
 epochs = 10;
+% Percentual de treinamento: 70% dos dados para treino; 30% dos dados para
+% teste
 train_percentual = 0.7;
+% Criando uma matriz para armazenar as acurácias em todas as épocas
 accuracy = zeros(1, epochs);
 
 for epoch = 1 : epochs
     [input_classes, total_samples] = size(X);
     [output_classes, ~] = size(y);
     
+    % Obtendo percentual de dados de teste e a quantidade de amostras
+    % representativas deste percentual
     test_percentual = 1 - train_percentual;
     test_samples_size = round(test_percentual * total_samples);
     
-    % X_train recebe X com os valores embaralhados
+    % Indíces aleatórios dos dados
     random_sample_indexes = randperm(length(X));
     
-    % De acordo com os índices das amostras obtidas na linha 66, obtemos os
+    % De acordo com os índices das amostras obtidas na linha 69, obtemos os
     % dados de treino de X normalizados e os rótulos de treino de y
     X_train = X_norm(:, random_sample_indexes);
     Y_train = y(:, random_sample_indexes);
@@ -89,23 +95,18 @@ for epoch = 1 : epochs
     [~, n] = size(X_train);
     Z = zeros(q, n);
 
-    % Percorre cada elemento da entrada
     for i = 1 : n
-        % Percorre cada neurônio
         for neuron_num = 1 : q
-            centroid = hidden_w(:, neuron_num); % Armazena o centroid do neurônio
-            x = X_train(:, i); % Armazena o elemento
-            u = norm(x - centroid); % Calcula a norma da diferença entre vetor do elemento e centroid
+            centroid = hidden_w(:, neuron_num); 
+            x = X_train(:, i); 
+            u = norm(x - centroid); 
             fu = exp(-u .^ 2 / (2 * sigma .^ 2));
             Z(neuron_num, i) = fu;
         end
     end
     
-    % Z é (q, n)
     [~, n] = size(Z);
     Z = [(-1) * ones(1, n); Z];
-    % Z = RadialBasisFunction.addBias(Z); % Após adicionar o bias/viés, Z é (q + 1, n)
-
     M = Y_train * Z' / (Z * Z');
 
     % Fim do treinamento do modelo
@@ -114,23 +115,18 @@ for epoch = 1 : epochs
     [~, n] = size(X_test);
     Z = zeros(q, n);
 
-    % Percorre cada elemento da entrada
     for i = 1 : n
-        % Percorre cada neurônio
         for neuron_num = 1 : q
-            centroid = hidden_w(:, neuron_num); % Armazena o centroid do neurônio
-            x = X_test(:, i); % Armazena o elemento
-            u = norm(x - centroid); % Calcula a norma da diferença entre vetor do elemento e centroid
-            fu = exp(-u .^ 2 / (2 * sigma .^ 2)); % Processa a norma pela função de ativação
+            centroid = hidden_w(:, neuron_num);
+            x = X_test(:, i);
+            u = norm(x - centroid);
+            fu = exp(-u .^ 2 / (2 * sigma .^ 2));
             Z(neuron_num, i) = fu;
         end
     end
     
-    % Z é (q, n)
     [~, n] = size(Z);
     Z = [(-1) * ones(1, n); Z];
-    % Z = RadialBasisFunction.addBias(Z); % Após adicionar o bias/viés, Z é (q + 1, n)
-
     predictions = M * Z;
 
     % Realizando-se a comparação dos rótulos reais com as predições do
@@ -139,10 +135,10 @@ for epoch = 1 : epochs
     [~, predicted_label] = max(predictions);
     [~, right_label] = max(Y_test);
 
-    quantity_of_right_predictions = predicted_label == right_label;
-    testHits = sum(quantity_of_right_predictions);
+    is_prediction_right = predicted_label == right_label;
+    quantity_of_right_predictions = sum(is_prediction_right);
     % Alimentando a matriz com a acurácia desta época
-    accuracy(epoch) = testHits / test_samples_size;
+    accuracy(epoch) = quantity_of_right_predictions / test_samples_size;
 end
 
 fprintf('Acurácia Média: %f\n', mean(accuracy));
