@@ -1,61 +1,83 @@
-% Lendo o arquivo .dat
-fileID = fopen('database/column_3C.dat');
-% Lendo os dados do arquivo .dat com a última coluna sendo string
-C = textscan(fileID, '%f %f %f %f %f %f %s', 'Delimiter',',');
+% 2º Trabalho de Inteligência Computacional - 2022.2
+% Curso: Engenharia de Computação
+% Prof. Jarbas Joaci
+% Universidade Federal do Ceará - UFC/Sobral
+% Estudante: William Bruno Sales de Paula Lima
+% Matrícula: 497345
 
-labels = C{7};
-N = length(labels);
-uniqueLabels = unique(labels);
-labelColumns = zeros(N, length(uniqueLabels));
+% Abrindo o arquivo para obter informações de leitura
+fid = fopen('database/column_3C.dat');
+% Utilizando fid para ler os dados das colunas do .dat, sendo a última
+% coluna como string e o delimitador da vírgula
+data_read = textscan(fid, '%f %f %f %f %f %f %s', 'Delimiter',',');
+
+% Início do processo de One Hot Encoding
+
+% Labels da última coluna
+labels = data_read{7};
+labels_quantity = length(labels);
+% Obtendo apenas realizações únicas em labels
+unique_labels = unique(labels);
+length_unique_labels = length(unique_labels);
+% Criando uma matriz de zeros que será "povoada" com 1's para cada registro
+% nos dados dependendo do seu rótulo (label) na última coluna
+label_columns = zeros(labels_quantity, length(unique_labels));
         
-for i = 1 : N
-   for j = 1 : length(uniqueLabels)
-       labelColumns(i, j) = strcmp(labels{i}, uniqueLabels(j));
+for i = 1 : labels_quantity
+   for j = 1 : length_unique_labels
+       label_columns(i, j) = strcmp(labels{i}, unique_labels(j));
    end
 end
 
-dataset = [C{1}, C{2}, C{3}, C{4}, C{5}, C{6}, labelColumns];
+% Fim do processo de One Hot Encoding
 
+% Concatenando todo o dataset com as 6 primeiras colunas do arquivo de
+% texto lido e as 3 colunas resultantes do OH Encoding (labels_columns)
+dataset = [data_read{1}, data_read{2}, data_read{3}, data_read{4}, data_read{5}, data_read{6}, label_columns];
+
+% Obtendo os dados de features (X) e os rótulos dos dados (Y)
 X = dataset(:, 1:6);
 X = X';
 y = dataset(:, 7:9);
 y = y';
 
+% Normalizando os dados de X entre -1 e 1
 X_norm = normalize(X);
 
-trainingPercentage = 0.7;
+% Percentual dos dados destinados ao treinamento
+% 70% -> treino; 30% -> teste/validação
+train_percentual = 0.7;
 
-% Seta o percentual de amostras para treinamento/testes para 70%/30%
-trainingPercentage = 0.7;
+epochs = 10;
+% Matriz destinada a armazenar as acurácias dos treinamentos
+accuracy = zeros(1, epochs);
 
-% Seta 10 épocas
-totalEpochs = 10;
-accuracy = zeros(1, totalEpochs);
-
+% Criando a rede neural com 30 neurônios na camada oculta
 net = feedforwardnet(30);
 
-for epoch = 1 : totalEpochs
-     % Em cada época é realizado um novo hold out
-
-    [inputClasses, totalSamples] = size(X);
-    [outputClasses, ~] = size(y);
+for epoch = 1 : epochs
+    [input_classes, total_samples] = size(X);
+    [output_classes, ~] = size(y);
     
-    testingPercentage = 1 - trainingPercentage;
-    quantityOfTestingSamples = round(testingPercentage * totalSamples);
+    test_percentual = 1 - train_percentual;
+    test_samples_size = round(test_percentual * total_samples);
     
     % X_train recebe X com os valores embaralhados
-    shuffledSampleIndexes = randperm(length(X));
+    random_sample_indexes = randperm(length(X));
     
-    X_train = X_norm(:, shuffledSampleIndexes);
-    Y_train = y(:, shuffledSampleIndexes);
-    
-    % As amostras excedentes são gradativamente retiradas de
-    % X_train, Y_train e alocadas em X_test e Y_test.
-    X_test = zeros(inputClasses, quantityOfTestingSamples);
-    Y_test = zeros(outputClasses, quantityOfTestingSamples);
+    % De acordo com os índices das amostras obtidas na linha 66, obtemos os
+    % dados de treino de X normalizados e os rótulos de treino de y
+    X_train = X_norm(:, random_sample_indexes);
+    Y_train = y(:, random_sample_indexes);
+   
+    X_test = zeros(input_classes, test_samples_size);
+    Y_test = zeros(output_classes, test_samples_size);
 
-
-    for i = 1 : quantityOfTestingSamples
+    % Esta etapa do código destina-se a injetar dados que estão nas
+    % matrizes de treino nas matrizes de teste, e depois remover os mesmos
+    % dados da matriz de treino. Com isso, não há vazamento de dados (data
+    % leakage)
+    for i = 1 : test_samples_size
         Y_test(:, i) = Y_train(:, i);
         X_test(:, i) = X_train(:, i);
     
@@ -63,29 +85,22 @@ for epoch = 1 : totalEpochs
         Y_train(:, i) = [];
     end
 
-    % O modelo é treinado
+    % Treinamento do modelo
     net = train(net, X_train, Y_train);
     
-    % Uma predição é feita com os dados de teste
-    prediction = net(X_test);
+    % Previsão dos rótulos
+    predictions = net(X_test);
 
-    % É comparado os dados de teste com a predição por meio da acurácia
-    [~, testSamples] = size(Y_test);
-    [~, predictedClass] = max(prediction);
-    [~, actualClass] = max(Y_test);
+    % Realizando-se a comparação dos rótulos reais com as predições do
+    % modelo
+    [~, test_samples_size] = size(Y_test);
+    [~, predicted_class] = max(predictions);
+    [~, right_class] = max(Y_test);
 
-    hitsArr = predictedClass == actualClass;
-    testHits = sum(hitsArr);
-    accuracy(epoch) = testHits / testSamples;
+    quantity_of_right_predictions = predicted_class == right_class;
+    testHits = sum(quantity_of_right_predictions);
+    % Alimentando a matriz com a acurácia desta época
+    accuracy(epoch) = testHits / test_samples_size;
 end
-
-
-% É mostrado de forma visual os valores das acurácias para cada época e
-% tambéma acurácia média.
-fprintf('===== Treinamento e Teste para MLP =====\n');
-
-for i = 1 : totalEpochs
-    fprintf('Acurácia Época %d: %f\n', i, accuracy(i));
-end 
 
 fprintf('Acurácia Média: %f\n', mean(accuracy));

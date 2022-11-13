@@ -1,8 +1,13 @@
-## Feature Engineering
+##########################################
+2º Trabalho de Inteligência Computacional
+Curso: Engenharia de Computação
+Professor: Jarbas Joaci
+Nome: William Bruno Sales de Paula Lima
+Matrícula: 497345
+##########################################
 
-Como diversos modelos de aprendizado de máquina apenas aceitam
-features numéricas, um processo de conversão da última coluna
-em valores numéricos foi realizada. No caso dos dados de coluna
-vertebral, todas as realizações de "DH" na última coluna foram
-substituídas pelo valor 0, as de valor "SH" foram substituídas
-pelo valor 1 e as de valor "NO" foram substituídas pelo valor 2.
+# Questão 1 - MLP
+
+A primeira questão está dentro da pasta "MLP", que contém uma pasta
+"database" com o arquivo .dat e o arquivo "mlp_implementation.m", que
+é o arquivo que contêm a implementação da MLP para os dados do .dat
